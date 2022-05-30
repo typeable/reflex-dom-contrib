@@ -33,6 +33,7 @@ module Reflex.Dom.Contrib.Router (
 import           Control.Monad.Fix             (MonadFix)
 import           Control.Lens                  ((&), (.~), (^.))
 import qualified Data.ByteString.Char8         as BS
+import           Data.Kind
 import           Data.Monoid                   ((<>))
 import           Data.Text                     (Text)
 import qualified Data.Text                     as T
@@ -79,8 +80,10 @@ route
   , PostBuild t m
   , TriggerEvent t m
   , PerformEvent t m
+#if !MIN_VERSION_reflex_dom_core(0,7,0)
   , HasJSContext m
   , HasJSContext (Performable m)
+#endif
   , MonadJSM m
   , MonadJSM (Performable m))
   => Event t T.Text
@@ -107,8 +110,10 @@ route'
   , PostBuild t m
   , TriggerEvent t m
   , PerformEvent t m
+#if !MIN_VERSION_reflex_dom_core(0,7,0)
   , HasJSContext m
   , HasJSContext (Performable m)
+#endif
   , MonadJSM m
   , MonadJSM (Performable m)
   , MonadFix m)
@@ -132,8 +137,10 @@ partialPathRoute
   , DomBuilder t m
   , TriggerEvent t m
   , PerformEvent t m
+#if !MIN_VERSION_reflex_dom_core(0,7,0)
   , HasJSContext m
   , HasJSContext (Performable m)
+#endif
   , MonadJSM m
   , MonadJSM (Performable m)
   , MonadFix m)
@@ -195,17 +202,23 @@ getPopState = do
 
 
 -------------------------------------------------------------------------------
-goForward :: (HasJSContext m, MonadJSM m) => m ()
+#if !MIN_VERSION_reflex_dom_core(0,7,0)
+type HasJSContext' m = (HasJSContext m)
+#else
+type HasJSContext' (m :: Type -> Type)  = (() :: Constraint)
+#endif
+
+goForward :: (HasJSContext' m, MonadJSM m) => m ()
 goForward = withHistory forward
 
 
 -------------------------------------------------------------------------------
-goBack :: (HasJSContext m, MonadJSM m) => m ()
+goBack :: (HasJSContext' m, MonadJSM m) => m ()
 goBack = withHistory back
 
 
 -------------------------------------------------------------------------------
-withHistory :: (HasJSContext m, MonadJSM m) => (History -> m a) -> m a
+withHistory :: (HasJSContext' m, MonadJSM m) => (History -> m a) -> m a
 withHistory act = do
   w <- currentWindowUnchecked
 #if MIN_VERSION_ghcjs_dom(0,8,0)
@@ -219,7 +232,7 @@ withHistory act = do
 
 -------------------------------------------------------------------------------
 -- | (Unsafely) get the 'GHCJS.DOM.Location.Location' of a window
-getLoc :: (HasJSContext m, MonadJSM m) => m Location
+getLoc :: (HasJSContext' m, MonadJSM m) => m Location
 getLoc = do
   win <- currentWindowUnchecked
 #if MIN_VERSION_ghcjs_dom(0,8,0)
@@ -233,7 +246,7 @@ getLoc = do
 
 -------------------------------------------------------------------------------
 -- | (Unsafely) get the URL text of a window
-getUrlText :: (HasJSContext m, MonadJSM m) => m T.Text
+getUrlText :: (HasJSContext' m, MonadJSM m) => m T.Text
 getUrlText = getLoc >>= getHref
 
 
@@ -242,7 +255,7 @@ type URI = U.URIRef U.Absolute
 
 
 -------------------------------------------------------------------------------
-getURI :: (HasJSContext m, MonadJSM m) => m URI
+getURI :: (HasJSContext' m, MonadJSM m) => m URI
 getURI = do
   l <- getUrlText
   return $ either (error "No parse of window location") id .

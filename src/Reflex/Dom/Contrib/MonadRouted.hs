@@ -40,6 +40,7 @@ import           Control.Monad.Reader
 import           Control.Monad.Ref
 import           Control.Monad.State.Strict
 import           Data.Coerce
+import           Data.Kind
 import qualified Data.List                  as L
 import           Data.Maybe
 import qualified Data.Semigroup             as Sem
@@ -54,6 +55,12 @@ import           URI.ByteString
 -------------------------------------------------------------------------------
 import           Debug.Trace
 ------------------------------------------------------------------------------
+
+#if !MIN_VERSION_reflex_dom_core(0,7,0)
+type HasJSContext' m = (HasJSContext m)
+#else
+type HasJSContext' (m :: Type -> Type)  = (() :: Constraint)
+#endif
 
 ------------------------------------------------------------------------------
 -- | Type alias for portions of a path after splitting on '/'
@@ -168,9 +175,12 @@ instance MonadDynamicWriter t w m => MonadDynamicWriter t w (RouteT t m) where
 instance EventWriter t w m => EventWriter t w (RouteT t m) where
   tellEvent = lift . tellEvent
 
+#if MIN_VERSION_reflex_dom_core(0,7,0)
+#else
 instance HasJSContext m => HasJSContext (RouteT t m) where
   type JSContextPhantom (RouteT t m) = JSContextPhantom m
   askJSContext = lift askJSContext
+#endif
 
 instance (MonadHold t m, MonadFix m, Adjustable t m) => Adjustable t (RouteT t m) where
   runWithReplace a0 a' = RouteT $ runWithReplace (coerce a0) (coerceEvent a')
@@ -228,7 +238,7 @@ askUri = do
 
 -- | Path segments of original url
 askInitialSegments
-    :: (Monad m, MonadJSM m, HasJSContext m, MonadRouted t m)
+    :: (Monad m, MonadJSM m, HasJSContext' m, MonadRouted t m)
     => m [PathSegment]
 askInitialSegments = do
   staticPath <- _routingInfoStaticPath <$> askRI

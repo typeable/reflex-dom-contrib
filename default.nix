@@ -1,5 +1,5 @@
-{ rpRef ? "4b4a2c8679d6f3042180d2974b31c43bfc506b91"
-, rpSha ? "185i8ccqk0xc05ckd921fs7nnaj88gihmlazny1dk004hxq78cj2"
+{ rpRef ? "123a6f487ca954fd983f6d4cd6b2a69d4c463d10"
+, rpSha ? "16q1rq0rwi6l28fv46q8m0hvb9rxrzf574j865vaz04xy8d5p1ya"
 }:
 
 let rp = builtins.fetchTarball {
